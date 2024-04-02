@@ -60,15 +60,16 @@ class ResultDoFn(beam.DoFn):
       result['error'] = "Not a valid time selection"
       return [result]
     result = {}
-    if element['avg_x_velocity_pos'] < 25 and element['avg_x_velocity_pos'] > 0:
+    result['second'] = element['second']   
+
+    if element['avg_x_velocity_pos'] < 30 and element['avg_x_velocity_pos'] > 0:
        result['east'] = "Traffic slowdown going east on this highway"
     else:
       result['east'] = "Traffic is smooth going east on this highway"  
-    if element['avg_x_velocity_pos'] < -25 and element['avg_x_velocity_pos'] < 0:
+    if element['avg_x_velocity_pos'] > -30 and element['avg_x_velocity_pos'] < 0:
       result['west'] = "Traffic slowdown going west on this highway"
     else:
-      result['west'] = "Traffic is smooth going west on this highway"  
-       
+      result['west'] = "Traffic is smooth going west on this highway"    
     return [result]
       
 def run(argv=None):
@@ -83,7 +84,7 @@ def run(argv=None):
   with beam.Pipeline(options=pipeline_options) as p:
         fromPubSub = (p | 'Read from PubSub' >> beam.io.ReadFromPubSub(topic=known_args.input)
                         | "toDict" >> beam.Map(lambda x: json.loads(x)))
-        createRequest = fromPubSub | 'Create Request' >> beam.Map(lambda data: beam.io.ReadFromBigQueryRequest(query='SELECT * FROM Tracks.track_'+ "{:02d}".format(data['track'])+ ' _output WHERE second ='+ str(data['second'])))
+        createRequest = fromPubSub | 'Create Request' >> beam.Map(lambda data: beam.io.ReadFromBigQueryRequest(query='SELECT * FROM Tracks.track_'+"{:02d}".format(data['track']) + '_output WHERE second ='+ str(data['second'])))
         # ' + f"{str(data['track']):02d}" + '
         readBq = createRequest | 'Read from big query' >> beam.io.ReadAllFromBigQuery()
         
